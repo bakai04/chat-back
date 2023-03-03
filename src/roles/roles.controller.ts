@@ -9,8 +9,8 @@ export class RolesController {
   constructor(private roleService: RolesService){}
 
   @Post()
-  create(@Body() dto:CreateRoleDto ){
-    return this.roleService.createRole(dto);
+  async create(@Body() dto:CreateRoleDto ){
+    return await this.roleService.createRole(dto);
   }
 
   @Get("/:id")
