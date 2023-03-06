@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { User } from "./user.model";
@@ -7,6 +7,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesAuthGuard } from "src/roles/roles.guard";
 import { Roles } from "src/roles/roles-auth.decorator";
 import { AddRoleDto } from "src/roles/dto/add-role.dto";
+import { ValidationPipe } from "../pipes/validationPipe";
 
 @ApiTags("Пользователи")
 @Controller('user')
