@@ -5,27 +5,44 @@ import * as bcrypt from "bcryptjs";
 import { CreateUserDto } from "../user/dto/create-user.dto";
 import { User } from "src/user/user.model";
 import { RefreshTokenDto } from "./dto/refresh.dto";
+import { MailService } from "src/mail/mail.service";
+import { ConfirmMailDto } from "src/mail/dto/confirmMailDto";
+import { LoginDto } from "src/mail/dto/login.dto";
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private mailerService: MailService,
   ){}
 
-  async login(userDto:CreateUserDto){
+  async login(userDto:LoginDto){
     const user = await this.validateUser(userDto);
-    return this.generateToken(user);
+    if(user){
+      return this.generateToken(user);
+    }
+  }
+
+  async confirmEmail(confirmDto: ConfirmMailDto) {
+    const isValidCode = await this.mailerService.verifyCode(confirmDto);
+
+    if(isValidCode) {
+      const user = await this.userService.getOne(confirmDto.email);
+      user.isActivate = true;
+      user.save();
+      return new HttpException("Вы успешно зарегистрировались", HttpStatus.OK);
+    }
   }
 
   async registration(userDto:CreateUserDto){
-    const candidate = await this.userService.getOne(userDto.email);
-    if(candidate) {
-      throw new HttpException("Пользователь с таким email существует", HttpStatus.BAD_REQUEST);
+    const isValidUser = await this.validateForRegistration(userDto);
+
+    if(isValidUser) {
+      const hashPassword = await bcrypt.hash(userDto.password, 5);
+      await this.userService.creatUser({...userDto, password: hashPassword,});
+      return await this.mailerService.sendConfirmationCode(userDto.email);
     }
-    const hashPassword = await bcrypt.hash(userDto.password, 5)
-    const user = await this.userService.creatUser({ password: hashPassword, ...userDto});
-    return this.generateToken(user);
   }
 
   async refresh(refreshToken: RefreshTokenDto) {
@@ -49,11 +66,22 @@ export class AuthService {
     }
   }
 
-  private async validateUser(userDto:CreateUserDto) {
+  private async validateForRegistration(userDto: CreateUserDto){
+    const candidate = await this.userService.getOne(userDto.email);
+    if(candidate) {
+      throw new HttpException("Пользователь с таким email существует", HttpStatus.BAD_REQUEST);
+    } else {
+      return true
+    }
+  }
+
+  private async validateUser(userDto:LoginDto) {
     const user = await this.userService.getOne(userDto.email);
-    const passwordEquals = bcrypt.compare(user.password, userDto.password);
-    if(user && passwordEquals) {
-      return user
+    if(user && user.isActivate) {
+      const passwordEquals = await bcrypt.compare(userDto.password, user.password);
+      if(passwordEquals){
+        return user
+      }     
     }
     throw new UnauthorizedException({message: "Не правильный пароль или email"});
   }

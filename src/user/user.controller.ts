@@ -7,7 +7,6 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesAuthGuard } from "src/roles/roles.guard";
 import { Roles } from "src/roles/roles-auth.decorator";
 import { AddRoleDto } from "src/roles/dto/add-role.dto";
-import { ValidationPipe } from "../pipes/validationPipe";
 
 @ApiTags("Пользователи")
 @Controller('user')
